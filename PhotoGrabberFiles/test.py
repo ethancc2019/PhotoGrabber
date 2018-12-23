@@ -1,10 +1,11 @@
 import requests
+from bs4 import BeautifulSoup
 from requests import get
 from requests.exceptions import RequestException
 from contextlib import closing
 import re
 import webbrowser
-import pyodbc
+#import pyodbc
 
 # Image URL
 # http://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/3125813.png
@@ -69,8 +70,6 @@ example: /college-football/team/roster/_/id/2132/cincinnati-bearcats
         
 append these results to "http://www.espn.com" to be taken to the roster page for that team
 """
-
-
 def getTeamUrls():
     global ncaaTeams
     raw_team_html = simple_get(ncaaTeams)
@@ -87,25 +86,30 @@ containing each player's first and last name with their MasterPlayerID
 """
 
 
-def getDatabaseResults():
-    connection = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
-                                "Server=warroom.stl.nfl.net;"
-                                "Database=RadarDB;"
-                                "Trusted_Connection=yes;")
-    cursor = connection.cursor()
-    # Can change this to and sql query we want and return all sorts of different results
-    cursor.execute(
-        "SELECT MasterPlayerID, ISNULL(FootballName, FirstName)FirstName, Lastname from POBase() where DraftYear > 2017")
+# def getDatabaseResults():
+#     connection = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
+#                                 "Server=warroom.stl.nfl.net;"
+#                                 "Database=RadarDB;"
+#                                 "Trusted_Connection=yes;")
+#     cursor = connection.cursor()
+#     # Can change this to and sql query we want and return all sorts of different results
+#     cursor.execute(
+#         "SELECT MasterPlayerID, ISNULL(FootballName, FirstName)FirstName, Lastname from POBase() where DraftYear > 2017")
+#
+#     results = cursor.fetchall()
+#
+#     # CLOSE OUR CONNECTIONS
+#     cursor.close()
+#     connection.close()
+#
+#     return results
 
-    results = cursor.fetchall()
-
-    # CLOSE OUR CONNECTIONS
-    cursor.close()
-    connection.close()
-
-    return results
-
-
+def Remove(duplicate):
+    final_list = []
+    for num in duplicate:
+        if num not in final_list:
+            final_list.append(num)
+    return final_list
 """
 MAIN DRIVER
 """
@@ -119,42 +123,51 @@ if __name__ == "__main__":
     matchesTemp = []
     thisCounter = 0
 
-    # This lost will contains duplicates so we will have to deal with that
-    idList = []
+    print("Saving player names and ID to our dictonary")
+
     for i in fullLink:
+
         raw_html = simple_get(i)
+        #Removing duplicates here
         matchesTemp = re.findall("player/_/id/[0-9]+", str(raw_html))
-        for j in matchesTemp:
+        final_Matches = Remove(matchesTemp)
+
+        for j in final_Matches:
             #Grab the player page html
-            playerPage = simple_get(espnPlayer + str(j))
-            urlTest = requests.request(playerPage)
-            #Grab the name
-            name = re.findall("<h1>[A-Z]{1}[a-z]+\s[A-Z]{1}[']?[A-Z]?[-]?[A-Z]?[a-z]+", str(playerPage))
-            #split the name from it's <h1> tag
-            splitName = str(name).split("<h1>")
+            raw_html = simple_get("http://www.espn.com/college-football/" + str(j))
+            prettyHtml = BeautifulSoup(raw_html, 'html.parser')
+            #print(prettyHtml.select('h1')[0])
+
+            splitName = str(prettyHtml.select('h1')[0]).replace("<h1>", "").replace("</h1>", "")
 
             string = matchesTemp[thisCounter]
-            test = str(string).split("/id/")
+            tempID = str(string).split("/id/")
             #idList.append(test[1])
-            nameEdit = str(splitName[1]).strip("\\']").strip("'").strip()
+            #nameEdit = str(splitName[1]).strip("\\']").strip("'").strip()
 
 
-            espnDictonary[nameEdit] = test[1]
+            espnDictonary[splitName] = tempID[1]
+            print("Player Name: " + splitName)
             string = ""
-            test.clear()
+            tempID.clear()
             thisCounter += 1
             splitName = ""
+        print("Finished this link: " + str(i))
+        # if thisCounter > 0:
+        #     break
         thisCounter = 0
 
     for key, val in espnDictonary.items():
         print (key, "=>", val)
 
+    print("Number of players: " + str(len(espnDictonary)))
+    print("DONE!")
     # Thsi for-loop is used to get rid of the duplicates?
-    finalId = []
-    for i in idList:
-        if i not in finalId:
-            finalId.append(i)
-            print(i)
+    # finalId = []
+    # for i in idList:
+    #     if i not in finalId:
+    #         finalId.append(i)
+    #         print(i)
 
     # for i in range(len(finalId)):
 
