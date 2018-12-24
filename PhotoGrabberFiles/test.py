@@ -1,3 +1,8 @@
+"""
+Author: Ethan Collins
+"""
+
+
 import requests
 from bs4 import BeautifulSoup
 from requests import get
@@ -5,7 +10,8 @@ from requests.exceptions import RequestException
 from contextlib import closing
 import re
 import webbrowser
-#import pyodbc
+
+# import pyodbc
 
 # Image URL
 # http://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/3125813.png
@@ -13,7 +19,7 @@ import webbrowser
 # List to hold all of the college team URLs
 collegeUrlList = []
 
-#Dictonary to hold espn ids and player names
+# Dictonary to hold espn ids and player names
 espnDictonary = {}
 
 # Base link that will be used for parsing the main espn team page
@@ -29,6 +35,9 @@ fullLink = []
 
 # Unambigious counter lol
 counter = 0
+
+# Instead of having to keep running this test if something crashes let's write to a file
+fileHandle = open("file.txt", "w")
 
 
 def simple_get(url):
@@ -70,6 +79,8 @@ example: /college-football/team/roster/_/id/2132/cincinnati-bearcats
         
 append these results to "http://www.espn.com" to be taken to the roster page for that team
 """
+
+
 def getTeamUrls():
     global ncaaTeams
     raw_team_html = simple_get(ncaaTeams)
@@ -110,6 +121,8 @@ def Remove(duplicate):
         if num not in final_list:
             final_list.append(num)
     return final_list
+
+
 """
 MAIN DRIVER
 """
@@ -125,49 +138,62 @@ if __name__ == "__main__":
 
     print("Saving player names and ID to our dictonary")
 
+    # Upon initial test my loop didn't break so I'll add a flag
+    breakCounter = 0
     for i in fullLink:
-
         raw_html = simple_get(i)
-        #Removing duplicates here
+        # Removing duplicates here
         matchesTemp = re.findall("player/_/id/[0-9]+", str(raw_html))
         final_Matches = Remove(matchesTemp)
 
         for j in final_Matches:
-            #Grab the player page html
+            # Grab the player page html
             raw_html = simple_get("http://www.espn.com/college-football/" + str(j))
             prettyHtml = BeautifulSoup(raw_html, 'html.parser')
-            #print(prettyHtml.select('h1')[0])
+            # print(prettyHtml.select('h1')[0])
 
             splitName = str(prettyHtml.select('h1')[0]).replace("<h1>", "").replace("</h1>", "")
 
-            string = matchesTemp[thisCounter]
+            string = final_Matches[thisCounter]
             tempID = str(string).split("/id/")
-            #idList.append(test[1])
-            #nameEdit = str(splitName[1]).strip("\\']").strip("'").strip()
-
+            # idList.append(test[1])
+            # nameEdit = str(splitName[1]).strip("\\']").strip("'").strip()
 
             espnDictonary[splitName] = tempID[1]
-            print("Player Name: " + splitName)
+            fileHandle.write(splitName + "," + str(tempID[1]) + "\n")
+            # print("Player Name: " + splitName)
             string = ""
+            splitName = ""
+            prettyHtml = ""
+            raw_html = ""
+
             tempID.clear()
             thisCounter += 1
-            splitName = ""
+
         print("Finished this link: " + str(i))
-        # if thisCounter > 0:
-        #     break
+        breakCounter += 1
+        if breakCounter > 258:
+            break
         thisCounter = 0
 
-    for key, val in espnDictonary.items():
-        print (key, "=>", val)
+    # Close and save the file
+    fileHandle.close()
 
     print("Number of players: " + str(len(espnDictonary)))
     print("DONE!")
-    # Thsi for-loop is used to get rid of the duplicates?
-    # finalId = []
-    # for i in idList:
-    #     if i not in finalId:
-    #         finalId.append(i)
-    #         print(i)
+
+    """
+    1) Here we will take our data base dictionary with player names and IDs in JAARS 
+    and find their entry in our espn dictionary
+    
+    2) Once we find their profile page we check if that profile page has a head shot.
+    Open the photo in a new tab, if status code != 404 then we have a valid headshot
+    
+    3) If a valid headshot is verified then we download it to our headshot folder in JAARS and here we can specify 
+    a file name where we append that player's ID from JAARS + .png and save it to our directory.
+    
+    Example file name: 3917315.png (Kyler Murray)
+    """
 
     # for i in range(len(finalId)):
 
