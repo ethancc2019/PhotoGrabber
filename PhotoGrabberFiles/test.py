@@ -25,13 +25,12 @@ espnDictonary = {}
 # Base link that will be used for parsing the main espn team page
 ncaaTeams = "http://www.espn.com/college-football/teams"
 espnPlayer = "http://www.espn.com/college-football/"
-# String to append to to get valiv team link
+
+# String to append to to get team link
 espnLink = "http://www.espn.com"
 
 # List to hold all of our appended team links
 fullLink = []
-
-# List to hold our
 
 # Unambigious counter lol
 counter = 0
@@ -39,13 +38,13 @@ counter = 0
 # Instead of having to keep running this test if something crashes let's write to a file
 fileHandle = open("file.txt", "w")
 
-
-def simple_get(url):
-    """
+"""
     Attempts to get the content at `url` by making an HTTP GET request.
     If the content-type of response is some kind of HTML/XML, return the
     text content, otherwise return None.
-    """
+"""
+def simple_get(url):
+
     try:
         with closing(get(url, stream=True)) as resp:
             if is_good_response(resp):
@@ -75,12 +74,10 @@ def log_error(e):
 """
 Function returns all team roster links on ESPN
 example: /college-football/team/roster/_/id/2132/cincinnati-bearcats
-        /college-football/team/roster/_/id/151/east-carolina-pirates
+        /college-football/team/roster/_/id/151/east-carolina-pirates etc...
         
-append these results to "http://www.espn.com" to be taken to the roster page for that team
+Append these results to "http://www.espn.com" to be taken to the roster page for that team
 """
-
-
 def getTeamUrls():
     global ncaaTeams
     raw_team_html = simple_get(ncaaTeams)
@@ -95,26 +92,25 @@ def getTeamUrls():
 Funtion that connects to our server(warroom.stl.nfl.net) and connects to the database(RadarDB) and will return a list 
 containing each player's first and last name with their MasterPlayerID
 """
+"""
+def getDatabaseResults():
+    connection = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
+                                "Server=warroom.stl.nfl.net;"
+                                "Database=RadarDB;"
+                                "Trusted_Connection=yes;")
+    cursor = connection.cursor()
+    # Can change this to and sql query we want and return all sorts of different results
+    cursor.execute(
+        "SELECT MasterPlayerID, ISNULL(FootballName, FirstName)FirstName, Lastname from POBase() where DraftYear > 2017")
 
+    results = cursor.fetchall()
 
-# def getDatabaseResults():
-#     connection = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
-#                                 "Server=warroom.stl.nfl.net;"
-#                                 "Database=RadarDB;"
-#                                 "Trusted_Connection=yes;")
-#     cursor = connection.cursor()
-#     # Can change this to and sql query we want and return all sorts of different results
-#     cursor.execute(
-#         "SELECT MasterPlayerID, ISNULL(FootballName, FirstName)FirstName, Lastname from POBase() where DraftYear > 2017")
-#
-#     results = cursor.fetchall()
-#
-#     # CLOSE OUR CONNECTIONS
-#     cursor.close()
-#     connection.close()
-#
-#     return results
+    # CLOSE OUR CONNECTIONS
+    cursor.close()
+    connection.close()
 
+    return results
+"""
 def Remove(duplicate):
     final_list = []
     for num in duplicate:
